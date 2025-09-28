@@ -1,1 +1,107 @@
+import matplotlib
+matplotlib.use('TkAgg')  # Explicitly set the backend for GUI window
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
+from scipy.integrate import solve_ivp
+
+# Lotka-Volterra model function
+def lotka_volterra(t, z, alpha, beta, delta, gamma):
+    x, y = z
+    dxdt = alpha * x - beta * x * y
+    dydt = delta * x * y - gamma * y
+    return [dxdt, dydt]
+
+# Initial parameters
+init_params = {
+    'alpha': 1.1,
+    'beta': 0.4,
+    'delta': 0.1,
+    'gamma': 0.4
+}
+
+# Initial conditions and time
+z0 = [10, 5]# Initial prey and predator populations
+t_span = (0, 30)
+t_eval = np.linspace(*t_span, 1000)
+
+# Function to solve ODE and return solution
+def solve_model(alpha, beta, delta, gamma):
+    sol = solve_ivp(lotka_volterra, t_span, z0,
+                    args=(alpha, beta, delta, gamma),
+                    t_eval=t_eval)
+    return sol
+
+# === Dark mode styling ===
+plt.style.use('dark_background')
+
+fig, ax = plt.subplots(figsize=(10, 6))
+plt.subplots_adjust(left=0.1, bottom=0.35)  # Make room for sliders
+
+# Initial solution
+sol = solve_model(**init_params)
+
+# Plot prey and predator populations with brighter colors
+prey_line, = ax.plot(sol.t, sol.y[0], label='Prey (x)', color='#1f77b4')   # bright blue
+pred_line, = ax.plot(sol.t, sol.y[1], label='Predator (y)', color='#ff7f0e') # bright orange
+
+ax.set_xlabel('Time', color='white')
+ax.set_ylabel('Population', color='white')
+ax.set_title('Lotka-Volterra Predator-Prey Model', color='white')
+
+ax.legend(facecolor='#222222', edgecolor='white', labelcolor='white')
+ax.grid(True, color='#444444')
+ax.tick_params(colors='white')  # ticks and tick labels in white
+
+# Slider axes (left, bottom, width, height)
+ax_alpha = plt.axes([0.25, 0.25, 0.65, 0.03], facecolor='#222222')
+ax_beta  = plt.axes([0.25, 0.20, 0.65, 0.03], facecolor='#222222')
+ax_delta = plt.axes([0.25, 0.15, 0.65, 0.03], facecolor='#222222')
+ax_gamma = plt.axes([0.25, 0.10, 0.65, 0.03], facecolor='#222222')
+
+# Create sliders with custom colors to match dark mode
+slider_alpha = Slider(ax_alpha, 'Prey Birth Rate(α):', 0.01, 3.0, valinit=init_params['alpha'])
+slider_beta  = Slider(ax_beta,  'Predation Rate(β):', 0.01, 1.0, valinit=init_params['beta'])
+slider_delta = Slider(ax_delta, 'Predator Birth Rate(δ):', 0.01, 1.0, valinit=init_params['delta'])
+slider_gamma = Slider(ax_gamma, 'Predator Death Rate(γ):', 0.01, 3.0, valinit=init_params['gamma'])
+
+# Manually set slider label colors and spine colors for dark mode
+for slider_ax in [ax_alpha, ax_beta, ax_delta, ax_gamma]:
+    slider_ax.tick_params(colors='white')
+    for label in slider_ax.get_xticklabels() + slider_ax.get_yticklabels():
+        label.set_color('white')
+    slider_ax.spines['bottom'].set_color('white')
+    slider_ax.spines['top'].set_color('white')
+    slider_ax.spines['left'].set_color('white')
+    slider_ax.spines['right'].set_color('white')
+
+for slider in [slider_alpha, slider_beta, slider_delta, slider_gamma]:
+    slider.label.set_color('white')
+
+# Update function for sliders
+def update(val):
+    alpha = slider_alpha.val
+    beta  = slider_beta.val
+    delta = slider_delta.val
+    gamma = slider_gamma.val
+    
+    sol = solve_model(alpha, beta, delta, gamma)
+    
+    prey_line.set_ydata(sol.y[0])
+    pred_line.set_ydata(sol.y[1])
+    
+    max_pop = max(sol.y[0].max(), sol.y[1].max())
+    ax.set_ylim(0, max_pop * 1.1)
+    
+    fig.canvas.draw_idle()
+
+# Connect sliders to update function
+slider_alpha.on_changed(update)
+slider_beta.on_changed(update)
+slider_delta.on_changed(update)
+slider_gamma.on_changed(update)
+
+plt.show(block=True)  # Ensure window stays open
+
 
